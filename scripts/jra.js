@@ -11,6 +11,97 @@ const CONFIG = {
   BASE_URL: 'https://www.jra.go.jp/'
 }
 
+const RACECOURSE = [
+  '札幌',
+  '函館',
+  '福島',
+  '新潟',
+  '東京',
+  '中山',
+  '中京',
+  '京都',
+  '阪神',
+  '小倉'
+]
+
+async function navigateToTopePage (page) {
+  try {
+    await page.goto(CONFIG.BASE_URL)
+
+    // 要素が表示されるまで待機
+    await page.locator('.place_line .unit').first().waitFor({
+      state: 'visible',
+      timeout: CONFIG.TIMEOUT
+    })
+
+    // 競馬場名
+    const elements = page.locator('.place_line .unit .rc_header h3')
+    let count = await elements.count()
+    const names = []
+    for (let i = 0; i < count; i++) {
+      const text = await elements.nth(i).textContent()
+      names.push(text)
+    }
+
+    // 天候
+    const weatherElements = page.locator('.place_line .unit .rc_header .cap')
+    count = await weatherElements.count()
+    const weathers = []
+    for (let i = 0; i < count; i++) {
+      const text = await weatherElements.nth(i).textContent()
+      weathers.push(text)
+    }
+
+    // 芝状態
+    const turfElements = page.locator('.place_line .unit .rc_body .turf')
+    count = await turfElements.count()
+    const turfs = []
+    for (let i = 0; i < count; i++) {
+      const text = await turfElements.nth(i).textContent()
+      turfs.push(text)
+    }
+
+    // ダ状態
+    const dirtElements = page.locator('.place_line .unit .rc_body .dirt')
+    count = await dirtElements.count()
+    const dirts = []
+    for (let i = 0; i < count; i++) {
+      const text = await dirtElements.nth(i).textContent()
+      dirts.push(text)
+    }
+
+    // データ整形
+    const newNames = []
+    for (const name of names) {
+      for (const v of RACECOURSE) {
+        if (name.includes(v)) {
+          newNames.push(v)
+        }
+      }
+    }
+
+    const opt = []
+    for (let i = 0; i < newNames.length; i++) {
+      const tmp = {
+        競馬場: newNames[i],
+        天候: weathers[i],
+        芝: turfs[i].replace('芝', ''),
+        ダ: dirts[i].replace('ダート', '')
+      }
+      opt.push(tmp)
+    }
+
+    // ファイル保存
+    fs.writeFileSync(
+      '/home/user/repo/playwright-auto-test/_conditions.json',
+      JSON.stringify(opt, null, 2)
+    )
+  } catch (error) {
+    console.log('要素が見つかりませんでした:', error)
+    throw error
+  }
+}
+
 // 出馬表ボタン探してクリック
 async function navigateToShutsubaPage (page) {
   try {
@@ -33,38 +124,6 @@ async function selectRaceCourse (page, raceCourse) {
     // 要素が表示されるまで待機
     await targetLink.waitFor({ state: 'visible', timeout: CONFIG.TIMEOUT })
     await targetLink.click({ timeout: CONFIG.TIMEOUT })
-  } catch (error) {
-    console.log('要素が見つかりませんでした:', error)
-    throw error
-  }
-}
-
-// 天候など取得
-async function getOpt (page) {
-  try {
-    // 要素が表示されるまで待機
-    await page.locator('.opt .weather .txt').first().waitFor({
-      state: 'visible',
-      timeout: CONFIG.TIMEOUT
-    })
-
-    // 天候を取得
-    const weather = await page.locator('.opt .weather .txt').textContent()
-    // 芝の状態を取得
-    const turf = await page.locator('.opt .turf .txt').textContent()
-    // ダートの状態を取得
-    const dirt = await page.locator('.opt .durt .txt').textContent()
-    // オブジェクトにする
-    const opt = {
-      天候: weather,
-      芝: turf,
-      ダ: dirt
-    }
-    // ファイル保存
-    fs.writeFileSync(
-      '/home/user/repo/playwright-auto-test/_conditions.json',
-      JSON.stringify(opt, null, 2)
-    )
   } catch (error) {
     console.log('要素が見つかりませんでした:', error)
     throw error
@@ -141,10 +200,9 @@ async function main () {
     const raceCourse = process.argv[2]
     const raceNumStr = process.argv[3]
     const raceNum = validateInputs(raceCourse, raceNumStr)
-    await page.goto(CONFIG.BASE_URL)
+    await navigateToTopePage(page)
     await navigateToShutsubaPage(page)
     await selectRaceCourse(page, raceCourse)
-    // await getOpt(page)
     await navigateToOddsPage(page, raceNum)
     await getOddsData(page)
     // await setTimeout(2000)

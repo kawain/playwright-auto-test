@@ -58,8 +58,12 @@ async function findAToOrePro (page) {
 async function taskToOrePro (page, preds, raceID) {
   try {
     const elements = page.locator('tr.HorseList')
-    // すべての要素が表示されるまで待機
-    await elements.first().waitFor()
+    await elements
+      .first()
+      .waitFor({ state: 'visible', timeout: CONFIG.TIMEOUT })
+
+    const button = page.locator(`#act-bet_${raceID}`)
+    await button.waitFor({ state: 'visible', timeout: CONFIG.TIMEOUT })
 
     const ids = []
     for (const element of await elements.all()) {
@@ -71,6 +75,37 @@ async function taskToOrePro (page, preds, raceID) {
     const dict = Object.fromEntries(
       ids.map((item, index) => [index + 1, item.split('_')[1]])
     )
+
+    // もしもクリックされているものがあればオフにする
+    for (const v of Object.values(dict)) {
+      let element = page.locator(`#ml1-${v}`)
+      let className = await element.getAttribute('class')
+      // class属性の判定
+      if (className === 'Selected') {
+        await element.click({ timeout: CONFIG.TIMEOUT })
+      }
+
+      element = page.locator(`#ml2-${v}`)
+      className = await element.getAttribute('class')
+      // class属性の判定
+      if (className === 'Selected') {
+        await element.click({ timeout: CONFIG.TIMEOUT })
+      }
+
+      element = page.locator(`#ml3-${v}`)
+      className = await element.getAttribute('class')
+      // class属性の判定
+      if (className === 'Selected') {
+        await element.click({ timeout: CONFIG.TIMEOUT })
+      }
+
+      element = page.locator(`#ml4-${v}`)
+      className = await element.getAttribute('class')
+      // class属性の判定
+      if (className === 'Selected') {
+        await element.click({ timeout: CONFIG.TIMEOUT })
+      }
+    }
 
     // クリック
     for (let i = 0; i < preds.length; i++) {
@@ -85,11 +120,11 @@ async function taskToOrePro (page, preds, raceID) {
       }
     }
 
-    // 勝負ボタン
-    const button = page.locator(`#act-bet_${raceID}`)
-    // 要素が表示されるまで待機
-    await button.waitFor({ state: 'visible', timeout: CONFIG.TIMEOUT })
-    // await button.click({ timeout: CONFIG.TIMEOUT })
+    // ボタンクリック
+    await Promise.all([
+      page.waitForLoadState('load'),
+      button.click({ timeout: CONFIG.TIMEOUT })
+    ])
   } catch (error) {
     console.log('要素が見つかりませんでした:', error)
     throw error
@@ -119,8 +154,7 @@ async function main () {
     await navigateToShutubaPage(page, raceID)
     await findAToOrePro(page)
     await taskToOrePro(page, preds, raceID)
-
-    await setTimeout(20000)
+    await setTimeout(10000)
   } catch (error) {
     console.error('エラーが発生しました:', error.message)
   } finally {
