@@ -1,9 +1,11 @@
 const { chromium } = require('@playwright/test')
 const { setTimeout } = require('node:timers/promises')
-require('dotenv').config()
+require('dotenv').config({
+  path: '/home/user/repo/playwright-auto-test/.env'
+})
 
 const CONFIG = {
-  TIMEOUT: 5000,
+  TIMEOUT: 30000,
   BASE_URL: 'https://regist.netkeiba.com/account/?pid=login'
 }
 
@@ -43,6 +45,8 @@ async function navigateToShutubaPage (page, raceID) {
 async function findAToOrePro (page) {
   try {
     const targetLink = page.getByRole('link', { name: '俺プロへ' })
+    // 要素が表示されるまで待機
+    await targetLink.waitFor({ state: 'visible', timeout: CONFIG.TIMEOUT })
     await targetLink.click({ timeout: CONFIG.TIMEOUT })
   } catch (error) {
     console.log('要素が見つかりませんでした:', error)
@@ -51,13 +55,41 @@ async function findAToOrePro (page) {
 }
 
 // 俺プロ
-async function taskToOrePro (page) {
+async function taskToOrePro (page, preds, raceID) {
   try {
-    await page.locator('#ml1-8').click()
-    await page.locator('#ml2-12').click()
-    await page.locator('#ml3-5').click()
+    const elements = page.locator('tr.HorseList')
+    // すべての要素が表示されるまで待機
+    await elements.first().waitFor()
 
-    
+    const ids = []
+    for (const element of await elements.all()) {
+      const id = await element.getAttribute('id')
+      ids.push(id)
+    }
+
+    // 馬番:trのid数字の辞書作成
+    const dict = Object.fromEntries(
+      ids.map((item, index) => [index + 1, item.split('_')[1]])
+    )
+
+    // クリック
+    for (let i = 0; i < preds.length; i++) {
+      if (i === 0) {
+        await page.locator(`#ml1-${dict[preds[i]]}`).click()
+      } else if (i === 1) {
+        await page.locator(`#ml2-${dict[preds[i]]}`).click()
+      } else if (i === 2) {
+        await page.locator(`#ml3-${dict[preds[i]]}`).click()
+      } else {
+        await page.locator(`#ml4-${dict[preds[i]]}`).click()
+      }
+    }
+
+    // 勝負ボタン
+    const button = page.locator(`#act-bet_${raceID}`)
+    // 要素が表示されるまで待機
+    await button.waitFor({ state: 'visible', timeout: CONFIG.TIMEOUT })
+    // await button.click({ timeout: CONFIG.TIMEOUT })
   } catch (error) {
     console.log('要素が見つかりませんでした:', error)
     throw error
@@ -69,27 +101,28 @@ async function main () {
   const page = await browser.newPage()
 
   try {
+    size = process.argv.length
+    if (size < 4) {
+      throw new Error('正しい引数を指定してください')
+    }
+
     const raceID = process.argv[2]
-    if (!raceID) {
-      throw new Error('レースIDを指定してください')
+
+    const preds = []
+    for (let i = 0; i < size; i++) {
+      if (i > 2) {
+        preds.push(process.argv[i])
+      }
     }
 
     await navigateToLoginPage(page)
-    await setTimeout(CONFIG.TIMEOUT)
-
     await navigateToShutubaPage(page, raceID)
-    await setTimeout(CONFIG.TIMEOUT)
-
     await findAToOrePro(page)
-    await setTimeout(CONFIG.TIMEOUT)
+    await taskToOrePro(page, preds, raceID)
 
-    taskToOrePro (page)
-    await setTimeout(8000)
-
-    console.log('処理が完了しました')
+    await setTimeout(20000)
   } catch (error) {
     console.error('エラーが発生しました:', error.message)
-    process.exit(1)
   } finally {
     await browser.close()
   }
