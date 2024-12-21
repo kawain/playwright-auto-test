@@ -107,23 +107,30 @@ async function taskToOrePro (page, preds, raceID) {
       }
     }
 
-    // クリック
     for (let i = 0; i < preds.length; i++) {
-      if (i === 0) {
-        await page.locator(`#ml1-${dict[preds[i]]}`).click()
-      } else if (i === 1) {
-        await page.locator(`#ml2-${dict[preds[i]]}`).click()
-      } else if (i === 2) {
-        await page.locator(`#ml3-${dict[preds[i]]}`).click()
-      } else {
-        await page.locator(`#ml4-${dict[preds[i]]}`).click()
-      }
+      let selector = ''
+      if (i === 0) selector = `#ml1-${dict[preds[i]]}`
+      else if (i === 1) selector = `#ml2-${dict[preds[i]]}`
+      else if (i === 2) selector = `#ml3-${dict[preds[i]]}`
+      else selector = `#ml4-${dict[preds[i]]}`
+
+      const element = await page.locator(selector)
+
+      // 要素が表示されて操作可能になるまで待機
+      await element.waitFor({ state: 'visible' })
+      await element.scrollIntoViewIfNeeded()
+
+      // 確実にクリックできるよう、JavaScriptを使用
+      await element.evaluate(node => node.click())
     }
 
-    // ボタンクリック
+    // ボタンが見えるところまでスクロール
+    await button.scrollIntoViewIfNeeded()
+    await button.waitFor({ state: 'visible' })
+
     await Promise.all([
       page.waitForLoadState('load'),
-      button.click({ timeout: CONFIG.TIMEOUT })
+      button.click({ timeout: CONFIG.TIMEOUT, force: true })
     ])
   } catch (error) {
     console.log('要素が見つかりませんでした:', error)
