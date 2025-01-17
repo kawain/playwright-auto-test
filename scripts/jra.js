@@ -213,6 +213,21 @@ async function main () {
   }
 }
 
+async function test_conditions () {
+  const browser = await chromium.launch({ headless: false })
+  const page = await browser.newPage()
+
+  try {
+    await navigateToTopePage(page)
+    await setTimeout(2000)
+  } catch (error) {
+    console.error('エラーが発生しました:', error.message)
+  } finally {
+    await browser.close()
+  }
+}
+
 if (require.main === module) {
   main()
+  // test_conditions()
 }
