@@ -122,6 +122,9 @@ async function taskToOrePro (page, preds, raceID) {
 
       // 確実にクリックできるよう、JavaScriptを使用
       await element.evaluate(node => node.click())
+
+      // スリープを追加
+      await page.waitForTimeout(1000)
     }
 
     // ボタンが見えるところまでスクロール
