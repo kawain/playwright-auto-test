@@ -53,21 +53,25 @@ async function navigateToTopePage (page) {
     }
 
     // 芝状態
-    const turfElements = page.locator('.place_line .unit .rc_body .turf')
+    const turfElements = page.locator('.place_line .unit .rc_body .turf dd')
     count = await turfElements.count()
     const turfs = []
     for (let i = 0; i < count; i++) {
       const text = await turfElements.nth(i).textContent()
-      turfs.push(text)
+      if (text) {
+        turfs.push(text)
+      }
     }
 
     // ダ状態
-    const dirtElements = page.locator('.place_line .unit .rc_body .dirt')
+    const dirtElements = page.locator('.place_line .unit .rc_body .dirt dd')
     count = await dirtElements.count()
     const dirts = []
     for (let i = 0; i < count; i++) {
       const text = await dirtElements.nth(i).textContent()
-      dirts.push(text)
+      if (text) {
+        dirts.push(text)
+      }
     }
 
     // データ整形
@@ -228,6 +232,6 @@ async function test_conditions () {
 }
 
 if (require.main === module) {
-  main()
-  // test_conditions()
+  // main()
+  test_conditions()
 }
