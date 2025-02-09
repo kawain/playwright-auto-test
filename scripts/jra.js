@@ -232,6 +232,6 @@ async function test_conditions () {
 }
 
 if (require.main === module) {
-  // main()
-  test_conditions()
+  main()
+  // test_conditions()
 }
