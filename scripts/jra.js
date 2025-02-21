@@ -162,7 +162,7 @@ async function getOddsData (page) {
     const nums = await page.locator('td.num').allTextContents()
     const oddsTans = await page.locator('td.odds_tan').allTextContents()
 
-    let csvData = '馬番,単勝\n'
+    let csvData = 'HorseNumber,Odds\n'
 
     for (let i = 0; i < nums.length; i++) {
       const num = nums[i].trim()
